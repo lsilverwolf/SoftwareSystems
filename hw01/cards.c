@@ -16,14 +16,12 @@ char card_name[2];
 int value = 0;
 int count = 0;
 
-/* Prompts the user for input and puts the reply in the given buffer.
+/* This function decides whether or not to increment or decrement the counter
 
-   User input is truncated to the first two characters.
-
-   prompt: string prompt to display
-   card_name: buffer where result is stored
+	val: the card value 
+   		value is the number on the card, 10 for face cards and 11 for ace
+	count: the counter for how good it is to take a hit
 */
-
 void  check_values(int *val, int *count)
 {
 	if ((*val > 2) && (*val < 7)) {
@@ -33,7 +31,12 @@ void  check_values(int *val, int *count)
 	}
 	printf("Current count: %i\n", *count);
 }
-		
+	
+/* This function assigns values to the face cards and others based on user input
+
+	card_name: the name of the card truncated to 2 characters
+	val: the value of the card to be set in this function
+*/	
 void assign_values(char card_name[], int *val)
 {
 	switch(card_name[0]) {
@@ -55,6 +58,8 @@ void assign_values(char card_name[], int *val)
 	
 }
 
+/* Main asks the user to input a card and then calls assign_values
+*/
 int main()
 {
 	while (card_name[0] != 'X') {
