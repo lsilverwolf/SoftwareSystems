@@ -8,8 +8,10 @@ License: Creative Commons Attribution-ShareAlike 3.0
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <regex.h>
 
 #define NUM_TRACKS 5
+#define BUFFER_SIZE 512
 
 char tracks[][80] = {
     "So What",
@@ -28,7 +30,7 @@ void find_track(char search_for[])
     int i;
     for (i=0; i<NUM_TRACKS; i++) {
 	if (strstr(tracks[i], search_for)) {
-	    printf("Track %i: '%s'\n", i, tracks[i]);
+	    printf("Track %i: '%s' (match based on searching)\n", i, tracks[i]);
 	}
     }
 }
@@ -38,7 +40,19 @@ void find_track(char search_for[])
 // Prints track number and title.
 void find_track_regex(char pattern[])
 {
-    // TODO: fill this in
+    regex_t re;
+    
+    if (regcomp(&re, pattern, 0)) {
+        printf("An error occurred!\n");
+    }
+    int j;
+    for (j=0; j<NUM_TRACKS; j++) {
+    	if (regexec(&re, tracks[j], 0, NULL, 0) == 0) {
+	        printf("Track %i: '%s' (match based on regular expressions)\n", j, 
+	            tracks[j]);
+	    }
+    }
+    regfree( &re );
 }
 
 // Truncates the string at the first newline, if there is one.
@@ -60,7 +74,7 @@ int main (int argc, char *argv[])
     rstrip(search_for);
 
     find_track(search_for);
-    //find_track_regex(search_for);
+    find_track_regex(search_for);
 
     return 0;
 }
