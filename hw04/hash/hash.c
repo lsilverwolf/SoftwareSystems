@@ -272,6 +272,7 @@ Map *make_map(int n)
 {
     Map *map = (Map *) malloc (sizeof (Map));
     Node **lists = malloc (n*sizeof(Node **));
+    map->n = n;
     map->lists = lists;
     return map;
 }
@@ -281,7 +282,6 @@ Map *make_map(int n)
 void print_map(Map *map)
 {
     int i;
-
     for (i=0; i<map->n; i++) {
         if (map->lists[i] != NULL) {
             printf ("%d\n", i);
@@ -294,10 +294,11 @@ void print_map(Map *map)
 /* Adds a key-value pair to a map. */
 void map_add(Map *map, Hashable *key, Value *value)
 {
-    for (int i = 0; i<map->n; i++) {
+    int i;
+    for (i = 0; i<map->n; i++) {
         if (map->lists[i] == NULL){
-            make_node(key, value, map->lists[i]);
-            break;
+            map->lists[i] = prepend(key, value, NULL);
+           break;
         }
     }
     
@@ -334,20 +335,25 @@ int main ()
     // make a list by hand
     Value *value1 = make_int_value (17);
     Node *node1 = make_node(hashable1, value1, NULL);
+    printf("node1: ");
     print_node (node1);
 
     Value *value2 = make_string_value ("Downey");
     Node *list = prepend(hashable2, value2, node1);
+    printf("The list: ");
     print_list (list);
 
     // run some test lookups
     Value *value = list_lookup (list, hashable1);
+    printf("Print lookup hashable 1: ");
     print_lookup(value);
 
     value = list_lookup (list, hashable2);
+    printf("Print lookup hashable 2: ");
     print_lookup(value);
 
     value = list_lookup (list, hashable3);
+    printf("Print lookup hashable 3: ");
     print_lookup(value);
 
     // make a map
@@ -360,12 +366,15 @@ int main ()
 
     // run some test lookups
     value = map_lookup(map, hashable1);
+    printf("Print map lookup hashable 1: ");
     print_lookup(value);
 
     value = map_lookup(map, hashable2);
+    printf("Print lookup hashable 2: ");
     print_lookup(value);
 
     value = map_lookup(map, hashable3);
+    printf("Print lookup hashable 3: ");
     print_lookup(value);
 
     return 0;
