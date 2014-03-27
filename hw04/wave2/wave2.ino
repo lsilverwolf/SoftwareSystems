@@ -12,6 +12,8 @@
  
  */
  
+//#include <TimerOne.h>
+//#include "TimerOne.h"
  
 int ledPin = 5;       // select the pin for the LED
 int buttonPin1 = 2;
@@ -25,19 +27,11 @@ void setup() {
   pinMode(buttonPin2, INPUT_PULLUP);  
   DDRD = DDRD | B11100000;  // digital pins 7,6,5,4,3,2,1,0
   DDRB = B00111111;  // digital pins -,-,13,12,11,10,9,8
-//  pinMode(ledPin, OUTPUT);
-//  
-//  pinMode(13, OUTPUT);  
-//  pinMode(12, OUTPUT);  
-//  pinMode(11, OUTPUT);  
-//  pinMode(10, OUTPUT);  
-//  pinMode(9, OUTPUT);  
-//  pinMode(8, OUTPUT);  
-//  pinMode(7, OUTPUT);  
-//  pinMode(6, OUTPUT);  
+//  Timer1.initialize(100000); // set a timer of length 100000 microseconds (or 0.1 sec - or 10Hz => the led will blink 5 times, 5 cycles of on-and-off, per second)
+//  Timer1.attachInterrupt( timerIsr ); // attach the service routine here
 
-  cli();//stop interrupts
-
+// initialize timer1 
+  noInterrupts();           // disable all interrupts
 //set timer0 interrupt at 2kHz
   TCCR0A = 0;// set entire TCCR0A register to 0
   TCCR0B = 0;// same for TCCR0B
@@ -51,28 +45,58 @@ void setup() {
   // enable timer compare interrupt
   TIMSK0 |= (1 << OCIE0A);
   
-  sei();
+  //set timer1 interrupt at 1Hz
+  TCCR1A = 0;// set entire TCCR1A register to 0
+  TCCR1B = 0;// same for TCCR1B
+  TCNT1  = 0;//initialize counter value to 0
+  // set compare match register for 1hz increments
+  OCR1A = 300;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+  // turn on CTC mode
+  TCCR1B |= (1 << WGM12);
+  // Set CS12 and CS10 bits for 1024 prescaler
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  // enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);
+  interrupts();             // enable all interrupts
+
 }
 
 void writeByte(int x) {
 
-  
-//  x <<= 2;
-//  int Dpins = B00000011;
-//  int Bpins = B11111100;
-//  int Dset_pins = x & Dpins;
-//  int Bset_pins = x & Bpins;
-//  Dset_pins <<=6;
-//  PORTB = Bset_pins, BIN;
-//  PORTD = Dset_pins, BIN;
-// write to the digital pins  
+  int Dpins = B00000011;
+  int Bpins = B11111100;
+  int Dset_pins = x & Dpins;
+  int Bset_pins = x & Bpins;
+  Dset_pins <<=6;
+  Bset_pins >>=2;
+  PORTB = Bset_pins;
+  PORTD = Dset_pins | B00000100;
+}
 
-    int pin;
-    for (pin=13; pin>=6; pin--) {
-      digitalWrite(pin, x&1);
-      x >>= 1;
-    }
-    
+byte bitswap (byte x)
+{
+  byte result;
+ 
+    asm("mov __tmp_reg__, %[in] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* shift out high bit to carry */
+      "ror %[out] \n\t"  /* rotate carry __tmp_reg__to low bit (eventually) */
+      "lsl __tmp_reg__  \n\t"   /* 2 */
+      "ror %[out] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* 3 */
+      "ror %[out] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* 4 */
+      "ror %[out] \n\t"
+ 
+      "lsl __tmp_reg__  \n\t"   /* 5 */
+      "ror %[out] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* 6 */
+      "ror %[out] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* 7 */
+      "ror %[out] \n\t"
+      "lsl __tmp_reg__  \n\t"   /* 8 */
+      "ror %[out] \n\t"
+      : [out] "=r" (result) : [in] "r" (x));
+      return(result);
 }
 
 int low = 36;
@@ -80,14 +104,33 @@ int high = 255;
 int stride = 5;
 int counter = low;
 
-void loop() {
-  int button1 = digitalRead(buttonPin1);
-  if (button1) return;
-  
+
+ISR(TIMER0_COMPA_vect)          // timer compare interrupt service routine
+{
+  int button2 = digitalRead(buttonPin2);
+  if (button2) return;  
   counter += stride;
   if (counter > high) {
     counter = low;
   }
-
+  
+  counter = bitswap(counter);
   writeByte(counter);
 }
+
+ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
+{
+  int button1 = digitalRead(buttonPin1);
+  if (button1) return;  
+  counter += stride;
+  if (counter > high) {
+    counter = low;
+  }
+  
+  counter = bitswap(counter);
+  writeByte(counter);
+}
+
+void loop() {
+    
+  }
