@@ -7,48 +7,51 @@
 #include <string.h>
 #include <glib.h>
 #include <err.h>
+#include "parse_file.c"
+#include "wordCount.c"
 
-int main ()
+int main (int argc, char *argv[])
 {
+    //declarations
+    char *input = "shortstory.txt";
+    char *intermediate;
     int c;
-    int d;
-//     char *input = argv[1];
     FILE *file;
-    GList* list = NULL;
     char *code;
     size_t n = 0;
+    int num_of_words;
     int counter = 0;
-    int beginning = 0;
-    GHashTable *hashtable = g_hash_table_new(g_str_hash, g_str_equal);
-
-    // NOTE: make this dynamic in the future!
-    file = fopen("parsedstory.txt", "r");
-
-    if (file == NULL) {
-		perror("Cannot open input file\n");
-        exit(-1);
-    }
     
-    fseek(file, 0, SEEK_END);
-    long f_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    code = malloc(f_size);
+    GHashTable *hashtable;
+    guint *value;
+    guint *unit;
+    GList *allKeys;
+    GList *allValues;
+    guint** freq;
+    char** str;
     
-    while ((c = fgetc(file)) != EOF) {
-        if ((char)c == '\n') {
-            counter++;
-        }
-    }
+    //This function takes the name of the text file that you hope to parse
+    //(input) and returns the name of the name of the text file where it stored
+    //the parsed version (intermediate).
+    intermediate = parse_file(&input);
     
-    char **words[counter];
-    for(int i = 0; i<counter; i++) {
+    //This function counts the number of words in the text file so that the
+    //program knows how much memory to allocate for the array.
+    //input: intermediate (the name of the text file where the parsed version of    
+    //      the text can be found)
+    //output: num_of_words (integer number of words in the parsed file)
+    num_of_words = wordCount(intermediate);
+    
+    //Allocates memory for each word from the text file.
+    char **words[num_of_words];
+    for(int i = 0; i<num_of_words; i++) {
         words[i]=malloc(100 * sizeof(char *));
     }
     
-    counter = 0;
-    fclose(file);
-    
-    file = fopen("parsedstory.txt", "r");
+    //Reads the file one line at a time and places each line in its own    
+    //allocated section of an array.
+    code = malloc(25*sizeof(char));
+    file = fopen(intermediate, "r");
     while ((c = fgetc(file)) != EOF) {
         if ((char)c != '\n') {
             code[n++] = (char)c;
@@ -56,18 +59,21 @@ int main ()
         else {
             code[n] = '\0';  
             *words[counter] = strdup(code);
-//             list = g_list_prepend(list, code);
             n = 0;
             counter++;
         }
     }      
 
     fclose(file);
-    
-    guint *value;
+
+    //Creates a hash table for the frequency counting.    
+    hashtable = g_hash_table_new(g_str_hash, g_str_equal);
     value = g_malloc(sizeof(guint));
-    guint *unit;
     
+    //This iterates through the array of words and determines if the word is    
+    //already present in the hash table. If it is not, a new entry is created
+    //and its frequency is listed as 1. If it is present, then the value 
+    //increases by 1.
     for (int i = 0; i<(counter); i++) {
         value = (guint*) g_hash_table_lookup(hashtable, *words[i]);
         if (value == NULL) {
@@ -81,14 +87,15 @@ int main ()
         }
     }
     
+    //Prints out the words and their associated frequencies.
     guint  uniqueWords = g_hash_table_size(hashtable);
     printf("\nThere are %d unique words in this file.\n\n", uniqueWords);
-    GList *allKeys = g_hash_table_get_keys(hashtable);
-    GList *allValues = g_hash_table_get_values(hashtable);
+    allKeys = g_hash_table_get_keys(hashtable);
+    allValues = g_hash_table_get_values(hashtable);
     printf("Frequency:\tString\n");
     for (int i = 0; i<uniqueWords; i++) {
-        guint** freq = (guint **)allValues->data;
-        char** str = (char **)allKeys->data;
+        freq = (guint **)allValues->data;
+        str = (char **)allKeys->data;
         printf("%d \t\t %s \n", *freq, str);
         allValues = allValues->next;
         allKeys = allKeys->next;
